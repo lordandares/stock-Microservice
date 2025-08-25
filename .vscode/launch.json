@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Debug API Service",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/api-service",
+      "remoteRoot": "/app",
+      "protocol": "inspector",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug Stock Worker",
+      "type": "node",
+      "request": "attach",
+      "port": 9230,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/stock-worker",
+      "remoteRoot": "/app",
+      "protocol": "inspector",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
