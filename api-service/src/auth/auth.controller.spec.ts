@@ -48,19 +48,27 @@ describe('AuthController', () => {
 
   describe('register', () => {
     it('should register a user and return id and username', async () => {
-      const dto = { username: 'testuser', password: 'testpass' };
+      const dto = { username: 'testuser', email: 'test@rw' };
 
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed123');
       (usersService.create as jest.Mock).mockResolvedValue({
         id: 1,
         username: dto.username,
+        email: dto.email,
       });
 
       const result = await controller.register(dto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
-      expect(usersService.create).toHaveBeenCalledWith(dto.username, 'hashed123');
-      expect(result).toEqual({ id: 1, username: dto.username });
+      expect(usersService.create).toHaveBeenCalledWith(
+        dto.username,
+        dto.email,
+        'hashed123',
+      );
+      expect(result).toEqual({
+        id: 1,
+        username: dto.username,
+        password: result.password,
+      });
     });
   });
 
@@ -75,7 +83,10 @@ describe('AuthController', () => {
 
       const result = await controller.login(dto);
 
-      expect(authService.validateUser).toHaveBeenCalledWith(dto.username, dto.password);
+      expect(authService.validateUser).toHaveBeenCalledWith(
+        dto.username,
+        dto.password,
+      );
       expect(result).toEqual({ access_token: 'mockToken' });
     });
 
@@ -84,7 +95,9 @@ describe('AuthController', () => {
 
       (authService.validateUser as jest.Mock).mockResolvedValue(null);
 
-      await expect(controller.login(dto)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(dto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { StockModule } from './stock/stock.module';
 import { ConfigModule } from '@nestjs/config';
 import { RabbitmqClientModule } from './rabbitmq-client/rabbitmq-client.module';
+import { Stock } from './stock/stock.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RabbitmqClientModule } from './rabbitmq-client/rabbitmq-client.module';
       synchronize: true,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
     }),
+    TypeOrmModule.forFeature([Stock]),
     AuthModule,
     StockModule,
     UsersModule,

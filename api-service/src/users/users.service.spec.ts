@@ -58,12 +58,17 @@ describe('UsersService', () => {
       repository.create.mockReturnValue(mockUser);
       repository.save.mockResolvedValue(mockUser);
 
-      const result = await service.create('testuser', 'hashedPassword');
+      const result = await service.create(
+        'testuser',
+        'emailt@test.com',
+        'hashedPassword',
+      );
       expect(repository.create).toHaveBeenCalledWith({
+        email: 'emailt@test.com',
         username: 'testuser',
         password: 'hashedPassword',
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+
       expect(repository.save).toHaveBeenCalledWith(mockUser);
       expect(result).toEqual(mockUser);
     });

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { StockController } from './stock.controller';
 import { StockService } from './stock.service';
@@ -7,15 +6,18 @@ describe('StockController', () => {
   let controller: StockController;
   let stockService: StockService;
 
+  const mockStockService = {
+    fetchStock: jest.fn(),
+    getUserStockHistory: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StockController],
       providers: [
         {
           provide: StockService,
-          useValue: {
-            fetchStock: jest.fn(),
-          },
+          useValue: mockStockService,
         },
       ],
     }).compile();
@@ -25,22 +27,55 @@ describe('StockController', () => {
   });
 
   describe('getStock', () => {
-    it('should return stock data when symbol is provided', async () => {
-      const mockSymbol = 'TSLA';
-      const mockData = { symbol: mockSymbol, price: 300 };
-
-      (stockService.fetchStock as jest.Mock).mockResolvedValue(mockData);
-
-      const result = await controller.getStock(mockSymbol);
-
-      expect(stockService.fetchStock).toHaveBeenCalledWith(mockSymbol);
-      expect(result).toEqual(mockData);
+    it('should return error if no symbol is provided', () => {
+      const result = controller.getStock({ user: { userId: 1 } }, undefined);
+      expect(result).toEqual({ error: 'Missing ?q=symbol query param' });
     });
 
-    it('should return an error object when symbol is missing', async () => {
-      const result = await controller.getStock('');
+    it('should call stockService.fetchStock with symbol and userId', () => {
+      const mockReq = { user: { userId: 42 } };
+      const symbol = 'AAPL';
+      const mockResponse = { price: 200 };
 
-      expect(result).toEqual({ error: 'Missing ?q=symbol query param' });
+      jest.spyOn(stockService, 'fetchStock').mockResolvedValue(mockResponse as any);
+
+      const result = controller.getStock(mockReq, symbol);
+      expect(stockService.fetchStock).toHaveBeenCalledWith(symbol, 42);
+      expect(result).resolves.toEqual(mockResponse);
+    });
+  });
+
+  describe('getHistoricalStock', () => {
+    it('should return formatted stock history', async () => {
+      const mockReq = { user: { id: 42 } };
+      const mockHistory = [
+        {
+          date: '2025-08-24',
+          symbol: 'AAPL',
+          volume: 10000,
+          open: 100,
+          high: 110,
+          low: 90,
+          close: 105,
+        },
+      ];
+
+      mockStockService.getUserStockHistory.mockResolvedValue(mockHistory);
+
+      const result = await controller.getHistoricalStock(mockReq);
+
+      expect(stockService.getUserStockHistory).toHaveBeenCalledWith(42);
+      expect(result).toEqual([
+        {
+          date: '2025-08-24',
+          name: 10000,
+          symbol: 'AAPL',
+          open: 100,
+          high: 110,
+          low: 90,
+          close: 105,
+        },
+      ]);
     });
   });
 });

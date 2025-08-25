@@ -11,9 +11,9 @@ import { ApiTags, ApiBody, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-import { LoginDto } from './dto/login.dto';
-import { User } from '../users/user.entity';
+import { LoginDto, RegisterDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { randomBytes } from 'crypto';
 
 @ApiTags('Authentication') // Groups endpoints in Swagger
 @Controller('auth')
@@ -24,13 +24,18 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @ApiBody({ type: LoginDto })
+  @ApiBody({ type: RegisterDto })
   @ApiResponse({ status: 201, description: 'User successfully registered.' })
   @ApiResponse({ status: 400, description: 'Invalid input.' })
-  async register(@Body() loginDto: LoginDto) {
-    const hash = await bcrypt.hash(loginDto.password, 10);
-    const user = await this.usersService.create(loginDto.username, hash);
-    return { id: user.id, username: user.username };
+  async register(@Body() RegisterDto: RegisterDto) {
+    const password = randomBytes(8).toString('hex');
+    const hash = await bcrypt.hash(password, 10);
+    const user = await this.usersService.create(
+      RegisterDto.username,
+      RegisterDto.email,
+      hash,
+    );
+    return { id: user.id, username: user.username, password: password };
   }
 
   @Post('login')
@@ -38,7 +43,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged in.' })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   async login(@Body() loginDto: LoginDto) {
-    const user: User | null = await this.authService.validateUser(
+    const user = await this.authService.validateUser(
       loginDto.username,
       loginDto.password,
     );
