@@ -1,22 +1,42 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { StockService } from './stock/stock.service';
 
 describe('AppController', () => {
   let appController: AppController;
+  let stockService: { fetchStock: jest.Mock };
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    stockService = {
+      fetchStock: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        {
+          provide: StockService,
+          useValue: stockService,
+        },
+      ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    appController = module.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
-    });
+  it('should be defined', () => {
+    expect(appController).toBeDefined();
+  });
+
+  it('should call stockService.fetchStock with the correct symbol and return the result', async () => {
+    const mockSymbol = 'AAPL';
+    const mockResult = { symbol: 'AAPL', close: 123 };
+    stockService.fetchStock.mockResolvedValue(mockResult);
+
+    const result = await appController.handleStockRequest(mockSymbol);
+
+    expect(stockService.fetchStock).toHaveBeenCalledWith(mockSymbol);
+    expect(result).toEqual(mockResult);
   });
 });

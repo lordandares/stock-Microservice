@@ -14,7 +14,7 @@ export class StockService {
     private stockRepository: Repository<Stock>,
   ) {}
 
-  async fetchStock(symbol: string): Promise<any> {
+  async fetchStock(symbol: string, userId: number): Promise<any> {
     const key = `stock:${symbol}`;
 
     // Try retrieving from cache
@@ -43,11 +43,15 @@ export class StockService {
       low: Number(values[5]),
       close: Number(values[6]),
       volume: Number(values[7]),
+      userId,
     };
 
     // Cache the data for 5 seconds
+    console.log('Caching data...');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await this.cacheManager.set(key, stockData, 5);
+    await this.cacheManager.set(key, stockData, 60);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    console.log('Cached:', await this.cacheManager.get(key));
     await this.saveStock(stockData);
 
     return stockData;

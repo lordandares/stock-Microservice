@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  JoinColumn,
+} from 'typeorm';
+import { User } from '../users/user.entity';
 
 @Entity()
 export class Stock {
@@ -28,4 +36,14 @@ export class Stock {
 
   @Column('bigint')
   volume: number;
+
+  @Column()
+  userId: number;
+
+  @CreateDateColumn()
+  dateCreated: Date;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 }
