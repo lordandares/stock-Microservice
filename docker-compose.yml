@@ -29,6 +29,22 @@ services:
     networks:
       - nest-net
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - nest-net
+
   api-service:
     build:
       context: ./api-service
@@ -69,6 +85,11 @@ services:
     command: npm run start:debug
     environment:
       RABBITMQ_HOST: amqp://guest:guest@rabbitmq:5672
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: admin
+      DB_NAME: stock
     restart: unless-stopped
 volumes:
   mysql-data:

@@ -1,31 +1,59 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import axios from 'axios';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Stock } from './stock.entity';
 
 @Injectable()
 export class StockService {
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @InjectRepository(Stock)
+    private stockRepository: Repository<Stock>,
+  ) {}
+
   async fetchStock(symbol: string): Promise<any> {
-    try {
-      const url = `https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlcv&h&e=csv`;
-      console.log('Fetching URL:', url);
-      const res = await axios.get<string>(url, { responseType: 'text' });
-      const data: string = res.data;
-      const lines = data.split('\n');
-      const headers = lines[0].split(',');
-      const values = lines[1]?.split(',');
+    const key = `stock:${symbol}`;
 
-      if (!values || values.length !== headers.length) {
-        return { error: 'Invalid stock symbol or no data' };
-      }
-
-      const result: Record<string, string> = {};
-      headers.forEach((h, i) => {
-        result[h] = values[i];
-      });
-
-      return result;
-    } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      return { error: 'Fetch failed', details: err };
+    // Try retrieving from cache
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const cached = await this.cacheManager.get(key);
+    console.log(cached);
+    if (cached) {
+      console.log('Returning from cache');
+      return cached;
     }
+
+    // Fetch fresh data
+    console.log('Fetching from API');
+    const response = await axios.get<string>(
+      `https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlcv&h&e=csv`,
+    );
+    const lines = response.data.trim().split('\n');
+    const values = lines[1].split(',');
+
+    const stockData: Partial<Stock> = {
+      symbol: values[0],
+      date: values[1],
+      time: values[2],
+      open: Number(values[3]),
+      high: Number(values[4]),
+      low: Number(values[5]),
+      close: Number(values[6]),
+      volume: Number(values[7]),
+    };
+
+    // Cache the data for 5 seconds
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    await this.cacheManager.set(key, stockData, 5);
+    await this.saveStock(stockData);
+
+    return stockData;
+  }
+
+  async saveStock(data: Partial<Stock>) {
+    return this.stockRepository.save(data);
   }
 }
